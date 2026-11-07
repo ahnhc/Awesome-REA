@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   scan:
-    if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    if: ${{ github.repository == 'reacher-z/Awesome-REA' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -56,7 +56,7 @@ jobs:
   # and it changes nothing but one new discovery batch file; the scan job above stays read-only.
   ingest:
     needs: scan
-    if: ${{ needs.scan.outputs.checkpoint_ready == 'true' && !github.event.repository.fork && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    if: ${{ github.repository == 'reacher-z/Awesome-REA' && (needs.scan.outputs.checkpoint_ready == 'true' && !github.event.repository.fork && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -98,7 +98,7 @@ jobs:
   # One tracking issue: updated on a failed run, closed by the next successful one.
   report:
     needs: [scan, ingest]
-    if: ${{ always() && !github.event.repository.fork && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    if: ${{ github.repository == 'reacher-z/Awesome-REA' && (always() && !github.event.repository.fork && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

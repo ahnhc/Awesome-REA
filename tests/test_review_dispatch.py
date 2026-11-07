@@ -148,12 +148,12 @@ class DispatchWorkflowTest(unittest.TestCase):
         self.assertEqual(re.findall(r'^  ([a-z-]+):$', jobs, re.MULTILINE), ['review', 'dispatched-review'])
         review, dispatched = jobs.split('\n  dispatched-review:\n')
         # The required `review` job keeps its pull_request_target trigger, base checkout and permissions.
-        self.assertIn("if: ${{ github.event_name == 'pull_request_target' }}", review)
+        self.assertIn("if: ${{ github.repository == 'reacher-z/Awesome-REA' && (github.event_name == 'pull_request_target') }}", review)
         self.assertIn('ref: ${{ github.event.pull_request.base.sha }}', review)
         self.assertIn('    permissions:\n      contents: read\n      pull-requests: write\n    steps:', review)
         # A dispatch runs only on the default branch, checking out that branch's own commit.
-        self.assertIn("if: ${{ github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', "
-                      "github.event.repository.default_branch) }}", dispatched)
+        self.assertIn("if: ${{ github.repository == 'reacher-z/Awesome-REA' && (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', "
+                      "github.event.repository.default_branch)) }}", dispatched)
         self.assertNotIn('ref:', dispatched)
         self.assertIn('    permissions:\n      contents: read\n      pull-requests: write\n      checks: write\n      statuses: write\n', dispatched)
         for job in (review, dispatched):
@@ -177,7 +177,7 @@ class DispatchWorkflowTest(unittest.TestCase):
         aggregate, reporter = jobs.split('\n  validate:\n', 1)[1].split('\n  validate-status:\n', 1)
         self.assertNotIn('permissions:', aggregate)
         self.assertIn('    needs: validate\n', reporter)
-        self.assertIn("    if: ${{ always() && github.event_name == 'workflow_dispatch' }}\n", reporter)
+        self.assertIn("    if: ${{ github.repository == 'reacher-z/Awesome-REA' && (always() && github.event_name == 'workflow_dispatch') }}\n", reporter)
         self.assertIn('    permissions:\n      statuses: write\n    steps:', reporter)
         self.assertIn("STATE: ${{ needs.validate.result == 'success' && 'success' || 'failure' }}", reporter)
         self.assertIn('-f state="$STATE" -f context=validate', reporter)

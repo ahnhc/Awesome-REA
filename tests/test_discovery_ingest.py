@@ -299,7 +299,7 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("github.ref == format('refs/heads/{0}', github.event.repository.default_branch)", ingest_job)
         self.assertIn('run: python3 scripts/ingest_discoveries.py run', ingest_job)
         self.assertIn('needs: [scan, ingest]', report_job)
-        self.assertIn('if: ${{ always() &&', report_job)
+        self.assertIn("if: ${{ github.repository == 'reacher-z/Awesome-REA' && (always() &&", report_job)
         self.assertIn('--tracker readme-discovery --result "scan=$SCAN_RESULT" --result "ingest=$INGEST_RESULT"', report_job)
         for line in self.text.splitlines():
             if line.strip().startswith('run:'):

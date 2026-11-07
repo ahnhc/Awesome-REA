@@ -131,7 +131,7 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(trigger, '  workflow_dispatch:\n    inputs:\n      pr:\n'
                                   '        description: Number of the pull request to merge\n'
                                   '        required: true\n        type: number')
-        self.assertIn("if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}", self.text)
+        self.assertIn("if: ${{ github.repository == 'reacher-z/Awesome-REA' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) }}", self.text)
         self.assertIn('concurrency:\n  group: merge-pr-${{ inputs.pr }}\n  cancel-in-progress: false\n', self.text)
         self.assertIn('    timeout-minutes: 10\n', self.text)
 
