@@ -88,21 +88,21 @@ def fingerprint(path):
 def repair_checksums(output):
     # These public descriptors bind transformed deployment bytes, not source data.
     browser_path = output / 'source-browser.json'
-    browser = json.loads(browser_path.read_text())
+    browser = json.loads(browser_path.read_text(encoding='utf-8'))
     full_export = browser.get('meta', {}).get('full_export')
     if full_export:
         browser['meta']['full_export_sha256'] = fingerprint(output / full_export)['sha256']
-        browser_path.write_text(json.dumps(browser, ensure_ascii=False, separators=(',', ':')) + '\n')
+        browser_path.write_text(json.dumps(browser, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
     index_path = output / 'api/v1/index.json'
-    index = json.loads(index_path.read_text())
+    index = json.loads(index_path.read_text(encoding='utf-8'))
     for item in index['files']:
         item.update(fingerprint(output / 'api/v1' / item['path'].rsplit('/', 1)[1]))
-    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + '\n')
+    index_path.write_text(json.dumps(index, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     folder = output / 'downloads'
-    manifest = json.loads((folder / 'manifest.json').read_text())
+    manifest = json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))
     for name, item in manifest['files'].items():
         item.update(fingerprint(folder / name))
-    (folder / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + '\n')
+    (folder / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + '\n', encoding='utf-8')
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
         for name in sorted([*manifest['files'], 'manifest.json']):
@@ -114,10 +114,10 @@ def repair_checksums(output):
     bundle = folder / 'awesome-rea-data.zip'
     bundle.write_bytes(buffer.getvalue())
     descriptor_path = output / 'data-manifest.json'
-    descriptor = json.loads(descriptor_path.read_text())
+    descriptor = json.loads(descriptor_path.read_text(encoding='utf-8'))
     descriptor.update(manifest)
     descriptor['archive'].update(fingerprint(bundle))
-    descriptor_path.write_text(json.dumps(descriptor, ensure_ascii=False, sort_keys=True, indent=2) + '\n')
+    descriptor_path.write_text(json.dumps(descriptor, ensure_ascii=False, sort_keys=True, indent=2) + '\n', encoding='utf-8')
 
 
 def adapt(output, site_url=DEFAULT_URL):
@@ -153,7 +153,7 @@ def adapt(output, site_url=DEFAULT_URL):
         (output / name).unlink(missing_ok=True)
     shutil.copyfile(ROOT / 'LICENSE', output / 'LICENSE')
     # Static redirects replace the small upstream Cloudflare redirect table.
-    for line in (ROOT / 'site/_redirects').read_text().splitlines():
+    for line in (ROOT / 'site/_redirects').read_text(encoding='utf-8').splitlines():
         parts = line.split()
         if len(parts) != 3 or not parts[0].startswith('/') or not parts[1].startswith('/'):
             continue
@@ -165,7 +165,7 @@ def adapt(output, site_url=DEFAULT_URL):
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
         destination = site_url + target
-        path.write_text(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={escape(destination)}"><link rel="canonical" href="{escape(destination)}"><title>Moved</title></head><body><a href="{escape(destination)}">Continue</a></body></html>\n')
+        path.write_text(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={escape(destination)}"><link rel="canonical" href="{escape(destination)}"><title>Moved</title></head><body><a href="{escape(destination)}">Continue</a></body></html>\n', encoding='utf-8')
     write_build_manifest(output)
     validate(output, site_url)
 
@@ -188,7 +188,7 @@ def validate(output, site_url):
     pages = 0
     for path in output.rglob('*.html'):
         parser = Links()
-        html = path.read_text()
+        html = path.read_text(encoding='utf-8')
         assert UPSTREAM not in html, f'Upstream URL remains in generated page: {path.relative_to(output)}'
         parser.feed(html)
         for canonical in re.findall(r'<link rel="canonical" href="([^"]+)"', html):
@@ -210,7 +210,7 @@ def validate(output, site_url):
         if match:
             assert f'.{fingerprint(path)["sha256"][:16]}.' in path.name, f'Stale asset fingerprint: {path.name}'
     for path in output.glob('*sitemap*.xml'):
-        assert UPSTREAM not in path.read_text()
+        assert UPSTREAM not in path.read_text(encoding='utf-8')
     print(f'GitHub Pages checks passed: {pages} HTML pages, mounted links, assets, license and manifest ({site_url}/).')
 
 

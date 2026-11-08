@@ -27,7 +27,7 @@ jobs:
         run: python3 scripts/build_production.py
       - name: Adapt and verify the Pages project site
         run: |
-          python3 -m unittest tests.test_github_pages tests.test_review_dispatch tests.test_merge_pr tests.test_discovery_ingest -v
+          python3 -m unittest tests.test_text_encoding tests.test_github_pages tests.test_review_dispatch tests.test_merge_pr tests.test_discovery_ingest -v
           python3 scripts/build_github_pages.py
           python3 -m compileall -q scripts tests
           find dist/assets -name '*.js' -exec node --check {} \;
