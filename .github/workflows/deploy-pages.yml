@@ -35,7 +35,6 @@ jobs:
         run: |
           npm ci --prefix tests/browser --ignore-scripts
           node tests/browser/github-pages.cjs
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

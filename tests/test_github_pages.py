@@ -1,6 +1,8 @@
 """Deployment-only URL adaptation; upstream builds keep their original contract."""
 import sys
 import re
+import subprocess
+import json
 from pathlib import Path
 import unittest
 
@@ -12,6 +14,49 @@ URL = 'https://ahnhc.github.io' + BASE
 
 
 class GitHubPagesTests(unittest.TestCase):
+    def test_rendered_client_route_functions(self):
+        root = Path(__file__).resolve().parents[1]
+        source = javascript((root / 'site/app.js').read_text(), BASE)
+        entry = re.search(r'function entryHref\(.*?\n}', source, re.S).group()
+        language = next(line for line in source.splitlines() if line.startswith('function languageHref('))
+        code = "const assert = require('node:assert/strict'); const state = {lang:'en'}; let location;\n" + entry + '\n' + language + """
+assert.equal(entryHref('curated','ghidra','en'), '/Awesome-REA/resources/ghidra/');
+assert.equal(entryHref('curated','ghidra','zh'), '/Awesome-REA/zh/resources/ghidra/');
+assert.equal(entryHref('paper','paper-test','en'), '/Awesome-REA/papers/paper-test/');
+assert.equal(entryHref('curated','../escape','en'), null);
+location = new URL('https://ahnhc.github.io/Awesome-REA/explore/?q=ghidra#catalog');
+assert.equal(languageHref('zh'), '/Awesome-REA/zh/explore/?q=ghidra#catalog');
+location = new URL('https://ahnhc.github.io/Awesome-REA/zh/explore/?q=ghidra&lang=zh#catalog');
+assert.equal(languageHref('en'), '/Awesome-REA/explore/?q=ghidra#catalog');
+"""
+        subprocess.run(['node', '-e', code], check=True, capture_output=True, text=True)
+
+    def test_bilingual_related_entries_survive_client_validation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = javascript((root / 'site/app.js').read_text(), BASE)
+        entry = re.search(r'function entryHref\(.*?\n}', source, re.S).group()
+        related = re.search(r'function sourceRelatedEntries\(.*?\n}', source, re.S).group()
+        record = {'related_entries': [
+            {'kind': 'curated', 'id': 'ghidra', 'title_en': 'Ghidra', 'title_zh': 'Ghidra',
+             'href_en': '/resources/ghidra/', 'href_zh': '/zh/resources/ghidra/'},
+            {'kind': 'paper', 'id': 'paper-test', 'title_en': 'Test paper', 'title_zh': 'Test paper',
+             'href_en': '/papers/paper-test/', 'href_zh': '/zh/papers/paper-test/'},
+        ]}
+        adapted = transform(json.dumps(record), '.json', URL, BASE)
+        code = "const assert = require('node:assert/strict'); const state = {lang:'en'};\n" + entry + '\n' + related
+        code += '\nconst record = ' + adapted + ';\n' + """
+for (const lang of ['en', 'zh']) {
+  state.lang = lang;
+  const links = sourceRelatedEntries(record);
+  assert.equal(links.length, 2, 'Both curated and paper relationships survive bilingual validation');
+  assert(links.every(link => link.href_en.startsWith('/Awesome-REA/') && link.href_zh.startsWith('/Awesome-REA/zh/')));
+}
+const broken = structuredClone(record);
+broken.related_entries[0].href_zh = '/zh/resources/ghidra/';
+assert.equal(sourceRelatedEntries(broken).length, 1, 'Reject a partially mounted relationship');
+"""
+        subprocess.run(['node', '-e', code], check=True, capture_output=True, text=True)
+
     def test_inherited_workflow_jobs_are_upstream_only(self):
         folder = Path(__file__).resolve().parents[1] / '.github/workflows'
         for path in folder.glob('*.yml'):
@@ -54,9 +99,10 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn('new URL("/Awesome-REA/" + filename', adapted)
 
     def test_json_routes_not_source_paths(self):
-        text = '{"href_en":"/resources/test/", "path":"/api/v1/resources.json", "description":"/usr/bin/test"}'
+        text = '{"href_en":"/resources/test/", "href_zh":"/zh/resources/test/", "path":"/api/v1/resources.json", "description":"/usr/bin/test"}'
         adapted = transform(text, '.json', URL, BASE)
         self.assertIn('"href_en":"/Awesome-REA/resources/test/"', adapted)
+        self.assertIn('"href_zh":"/Awesome-REA/zh/resources/test/"', adapted)
         self.assertIn('"description":"/usr/bin/test"', adapted)
 
 

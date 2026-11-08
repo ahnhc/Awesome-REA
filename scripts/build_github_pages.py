@@ -73,7 +73,7 @@ def transform(text, suffix, site_url, base):
         text = re.sub(r'''(url\(["']?)(/[^)"']*)''', lambda m: m[1] + mount(m[2], base), text)
     if suffix in {'.json', '.jsonl'}:
         # Published route fields, never arbitrary paths retained in source evidence.
-        text = re.sub(r'("(?:href_en|href_zh|path)"\s*:\s*")(/(?:api|resources|papers|browse)/[^"\n]*)',
+        text = re.sub(r'("(?:href_en|href_zh|path)"\s*:\s*")(/(?:zh/)?(?:api|resources|papers|browse)/[^"\n]*)',
                       lambda m: m[1] + mount(m[2], base), text)
     if suffix in {'.md', '.txt'}:
         text = re.sub(r'(\]\()(/[^)\s]*)', lambda m: m[1] + mount(m[2], base), text)
